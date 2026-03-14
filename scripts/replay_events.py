@@ -12,6 +12,9 @@ load_dotenv()
 CLICKHOUSE_HOST = os.getenv("CLICKHOUSE_HOST")
 CLICKHOUSE_PORT = int(os.getenv("CLICKHOUSE_PORT"))
 
+CLICKHOUSE_USER = os.getenv("CLICKHOUSE_USER")
+CLICKHOUSE_PASSWORD = os.getenv("CLICKHOUSE_PASSWORD")
+
 CLICKHOUSE_DATABASE = os.getenv("CLICKHOUSE_DATABASE")
 TABLE_NAME = os.getenv("CLICKHOUSE_TABLE")
 
@@ -28,74 +31,77 @@ SLEEP_TIME = float(os.getenv("SLEEP_TIME"))       # simulate streaming
 
 client = clickhouse_connect.get_client(
     host=CLICKHOUSE_HOST,
-    port=CLICKHOUSE_PORT
+    port=CLICKHOUSE_PORT,
+    username=CLICKHOUSE_USER,
+    password=CLICKHOUSE_PASSWORD,
+    database=CLICKHOUSE_DATABASE
 )
 
 print("Connected to ClickHouse")
 
 
-# ==========================
-# INSERT FUNCTION
-# ==========================
+# # ==========================
+# # INSERT FUNCTION
+# # ==========================
 
-def insert_batch(df):
+# def insert_batch(df):
 
-    records = df.to_dict("records")
+#     records = df.to_dict("records")
 
-    client.insert(
-        f"{CLICKHOUSE_DATABASE}.{TABLE_NAME}",
-        records,
-        column_names=[
-            "event_time",
-            "event_type",
-            "product_id",
-            "category_id",
-            "category_code",
-            "brand",
-            "price",
-            "user_id",
-            "user_session"
-        ]
-    )
+#     client.insert(
+#         f"{CLICKHOUSE_DATABASE}.{TABLE_NAME}",
+#         records,
+#         column_names=[
+#             "event_time",
+#             "event_type",
+#             "product_id",
+#             "category_id",
+#             "category_code",
+#             "brand",
+#             "price",
+#             "user_id",
+#             "user_session"
+#         ]
+#     )
 
 
-# ==========================
-# REPLAY CSV
-# ==========================
+# # ==========================
+# # REPLAY CSV
+# # ==========================
 
-total_inserted = 0
+# total_inserted = 0
 
-for chunk in pd.read_csv(CSV_FILE, chunksize=CHUNK_SIZE):
+# for chunk in pd.read_csv(CSV_FILE, chunksize=CHUNK_SIZE):
 
-    # convert datetime
-    chunk["event_time"] = pd.to_datetime(chunk["event_time"])
+#     # convert datetime
+#     chunk["event_time"] = pd.to_datetime(chunk["event_time"])
 
-    # reorder columns to match schema
-    chunk = chunk[
-        [
-            "event_time",
-            "event_type",
-            "product_id",
-            "category_id",
-            "category_code",
-            "brand",
-            "price",
-            "user_id",
-            "user_session"
-        ]
-    ]
+#     # reorder columns to match schema
+#     chunk = chunk[
+#         [
+#             "event_time",
+#             "event_type",
+#             "product_id",
+#             "category_id",
+#             "category_code",
+#             "brand",
+#             "price",
+#             "user_id",
+#             "user_session"
+#         ]
+#     ]
 
-    # split into batches
-    for i in range(0, len(chunk), BATCH_SIZE):
+#     # split into batches
+#     for i in range(0, len(chunk), BATCH_SIZE):
 
-        batch = chunk.iloc[i:i+BATCH_SIZE]
+#         batch = chunk.iloc[i:i+BATCH_SIZE]
 
-        insert_batch(batch)
+#         insert_batch(batch)
 
-        total_inserted += len(batch)
+#         total_inserted += len(batch)
 
-        print(f"Inserted rows: {total_inserted}")
+#         print(f"Inserted rows: {total_inserted}")
 
-        time.sleep(SLEEP_TIME)
+#         time.sleep(SLEEP_TIME)
 
-print("Replay completed")
+# print("Replay completed")
