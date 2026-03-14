@@ -1,0 +1,7 @@
+<clickhouse>
+  <macros>
+    <cluster>analytics_cluster</cluster>
+    <shard>1</shard>
+    <replica>ch2</replica>
+  </macros>
+</clickhouse>

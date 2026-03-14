@@ -1,0 +1,118 @@
+services:
+
+  keeper:
+    image: clickhouse/clickhouse-keeper
+    container_name: clickhouse-keeper
+    hostname: keeper
+
+    ports:
+      - "9181:9181"
+    
+    volumes:
+      - ./clickhouse_config/keeper/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml
+      - ./keeper_data:/var/lib/clickhouse
+
+    restart: always
+
+  clickhouse1:
+    image: clickhouse/clickhouse-server
+    container_name: ch1
+    hostname: ch1
+
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+
+    depends_on:
+      - keeper
+
+    volumes:
+      - ./clickhouse_data/ch1:/var/lib/clickhouse
+      - ./clickhouse_logs/ch1:/var/log/clickhouse-server
+      - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
+      - ./clickhouse_config/ch1/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
+
+    # deploy:
+    #   resources:
+    #     limits:
+    #       memory: 2g
+    
+    # cpus: 2
+
+    # environment:
+    #   CLICKHOUSE_DB: ecommerce
+    #   CLICKHOUSE_USER: admin
+    #   CLICKHOUSE_PASSWORD: admin123
+  
+  clickhouse2:
+    image: clickhouse/clickhouse-server
+    container_name: ch2
+    hostname: ch2
+
+    ports:
+      - "8124:8123"
+      - "9001:9000"
+    
+    depends_on:
+      - keeper
+
+    volumes:
+      - ./clickhouse_data/ch2:/var/lib/clickhouse
+      - ./clickhouse_logs/ch2:/var/log/clickhouse-server
+      - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
+      - ./clickhouse_config/ch2/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
+  
+  clickhouse3:
+    image: clickhouse/clickhouse-server
+    container_name: ch3
+    hostname: ch3
+
+    ports:
+      - "8125:8123"
+      - "9002:9000"
+
+    depends_on:
+      - keeper
+
+    volumes:
+      - ./clickhouse_data/ch3:/var/lib/clickhouse
+      - ./clickhouse_logs/ch3:/var/log/clickhouse-server
+      - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
+      - ./clickhouse_config/ch3/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
+
+  clickhouse4:
+    image: clickhouse/clickhouse-server
+    container_name: ch4
+    hostname: ch4
+
+    ports:
+      - "8126:8123"
+      - "9003:9000"
+
+    depends_on:
+      - keeper
+
+    volumes:
+      - ./clickhouse_data/ch4:/var/lib/clickhouse
+      - ./clickhouse_logs/ch4:/var/log/clickhouse-server
+      - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
+      - ./clickhouse_config/ch4/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
+
+
+
+
+  
+#   grafana:
+#     image: grafana/grafana
+#     container_name: grafana
+
+#     ports:
+#       -"3000:3000"
+
+#     depends_on:
+#       - clickhouse
+    
+#     volumes:
+#       - grafana-storage:/var/lib/grafana
+# volumes:
+#   grafana-storage:

@@ -1,0 +1,9 @@
+Khởi tạo và chạy containers: docker compose up -d
+Remove containers: docker compose down
+Chạy containers: docker compose start
+Stop container: docker compose stop
+Truy cập bash (terminal) của clickhouse server container: docker exec -it ch1 bash
+Mở clickhouse-client để sql query: docker exec -it ch1 bash --> clickhouse-client
+Tạo env từ environment.yml với conda: conda env create -f environment.yml
+Update file enviroment.yml khi cài thêm lib/package: conda env export > environemnt.yml
+Remove enviroment: conda remove -n ch-analytics -all
