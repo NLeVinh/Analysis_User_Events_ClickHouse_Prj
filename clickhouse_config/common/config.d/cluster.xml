@@ -6,10 +6,14 @@
         <replica>
           <host>ch1</host>
           <port>9000</port>
+          <user from_env="CH_CLICKHOUSE_USER"/>
+          <password from_env="CH_CLICKHOUSE_PASSWORD"/>
         </replica>
         <replica>
           <host>ch2</host>
           <port>9000</port>
+          <user from_env="CH_CLICKHOUSE_USER"/>
+          <password from_env="CH_CLICKHOUSE_PASSWORD"/>
         </replica>
       </shard>
 
@@ -17,10 +21,14 @@
         <replica>
           <host>ch3</host>
           <port>9000</port>
+          <user from_env="CH_CLICKHOUSE_USER"/>
+          <password from_env="CH_CLICKHOUSE_PASSWORD"/>
         </replica>
         <replica>
           <host>ch4</host>
           <port>9000</port>
+          <user from_env="CH_CLICKHOUSE_USER"/>
+          <password from_env="CH_CLICKHOUSE_PASSWORD"/>
         </replica>
       </shard>
 

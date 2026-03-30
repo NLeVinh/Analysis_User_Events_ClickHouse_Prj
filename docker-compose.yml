@@ -12,12 +12,16 @@ services:
       - ./clickhouse_config/keeper/keeper_config.xml:/etc/clickhouse-keeper/keeper_config.xml
       - ./keeper_data:/var/lib/clickhouse
 
-    restart: always
+    restart: no
 
   clickhouse1:
     image: clickhouse/clickhouse-server
     container_name: ch1
     hostname: ch1
+
+    environment:
+      CH_CLICKHOUSE_USER: ${CH_CLICKHOUSE_USER}
+      CH_CLICKHOUSE_PASSWORD: ${CH_CLICKHOUSE_PASSWORD}
 
     ports:
       - "8123:8123"
@@ -49,6 +53,10 @@ services:
     container_name: ch2
     hostname: ch2
 
+    environment:
+      CH_CLICKHOUSE_USER: ${CH_CLICKHOUSE_USER}
+      CH_CLICKHOUSE_PASSWORD: ${CH_CLICKHOUSE_PASSWORD}
+
     ports:
       - "8124:8123"
       - "9001:9000"
@@ -67,6 +75,10 @@ services:
     container_name: ch3
     hostname: ch3
 
+    environment:
+      CH_CLICKHOUSE_USER: ${CH_CLICKHOUSE_USER}
+      CH_CLICKHOUSE_PASSWORD: ${CH_CLICKHOUSE_PASSWORD}
+
     ports:
       - "8125:8123"
       - "9002:9000"
@@ -84,6 +96,10 @@ services:
     image: clickhouse/clickhouse-server
     container_name: ch4
     hostname: ch4
+
+    environment:
+      CH_CLICKHOUSE_USER: ${CH_CLICKHOUSE_USER}
+      CH_CLICKHOUSE_PASSWORD: ${CH_CLICKHOUSE_PASSWORD}
 
     ports:
       - "8126:8123"
