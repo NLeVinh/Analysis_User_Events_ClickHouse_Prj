@@ -14,6 +14,9 @@ services:
 
     restart: no
 
+    networks:
+      - ch-network
+
   clickhouse1:
     image: clickhouse/clickhouse-server
     container_name: ch1
@@ -36,17 +39,8 @@ services:
       - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
       - ./clickhouse_config/ch1/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
 
-    # deploy:
-    #   resources:
-    #     limits:
-    #       memory: 2g
-    
-    # cpus: 2
-
-    # environment:
-    #   CLICKHOUSE_DB: ecommerce
-    #   CLICKHOUSE_USER: admin
-    #   CLICKHOUSE_PASSWORD: admin123
+    networks:
+      - ch-network
   
   clickhouse2:
     image: clickhouse/clickhouse-server
@@ -69,6 +63,9 @@ services:
       - ./clickhouse_logs/ch2:/var/log/clickhouse-server
       - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
       - ./clickhouse_config/ch2/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
+    
+    networks:
+      - ch-network
   
   clickhouse3:
     image: clickhouse/clickhouse-server
@@ -92,6 +89,9 @@ services:
       - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
       - ./clickhouse_config/ch3/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
 
+    networks:
+      - ch-network
+
   clickhouse4:
     image: clickhouse/clickhouse-server
     container_name: ch4
@@ -114,21 +114,33 @@ services:
       - ./clickhouse_config/common/config.d:/etc/clickhouse-server/config.d
       - ./clickhouse_config/ch4/config.d/macros.xml:/etc/clickhouse-server/config.d/macros.xml
 
+    networks:
+      - ch-network
 
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
 
+    ports:
+      - "3000:3000"
 
-  
-#   grafana:
-#     image: grafana/grafana
-#     container_name: grafana
+    volumes:
+      - ./grafana_data:/var/lib/grafana
 
-#     ports:
-#       -"3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin123
+      GF_INSTALL_PLUGINS: grafana-clickhouse-datasource
+      GF_USERS_ALLOW_SIGN_UP: "false"
 
-#     depends_on:
-#       - clickhouse
-    
-#     volumes:
-#       - grafana-storage:/var/lib/grafana
-# volumes:
-#   grafana-storage:
+  # restart: unless-stopped
+
+    depends_on:
+      - clickhouse1
+
+    networks:
+      - ch-network
+
+networks:
+  ch-network:
+    driver: bridge

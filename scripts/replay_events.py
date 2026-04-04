@@ -22,26 +22,9 @@ TABLE_NAME = os.getenv("CLICKHOUSE_TABLE")
 CSV_FILE = os.getenv("CSV_FILE")
 
 CHUNK_SIZE = int(os.getenv("CHUNK_SIZE"))      # rows read from CSV
-BATCH_SIZE = int(os.getenv("BATCH_SIZE"))       # rows per insert
+WINDOW_SECONDS = int(os.getenv("WINDOW_SECONDS"))
 SLEEP_TIME = float(os.getenv("SLEEP_TIME"))       # simulate streaming
 MAX_RECORDS = int(os.getenv("MAX_RECORDS"))
-
-# print("CLICKHOUSE CONFIG:")
-# print("HOST:", CLICKHOUSE_HOST)
-# print("PORT:", CLICKHOUSE_PORT, type(CLICKHOUSE_PORT))
-# print("USER:", CLICKHOUSE_USER)
-# print("PASSWORD:", CLICKHOUSE_PASSWORD)
-# print("DATABASE:", CLICKHOUSE_DATABASE)
-# print("TABLE_NAME:", TABLE_NAME)
-
-# print("\nDATA CONFIG:")
-# print("CSV_FILE:", CSV_FILE)
-
-# print("\nPROCESSING CONFIG:")
-# print("CHUNK_SIZE:", CHUNK_SIZE, type(CHUNK_SIZE))
-# print("BATCH_SIZE:", BATCH_SIZE, type(BATCH_SIZE))
-# print("SLEEP_TIME:", SLEEP_TIME, type(SLEEP_TIME))
-# print("MAX_RECORDS:", MAX_RECORDS, type(MAX_RECORDS))
 
 # ==========================
 # CONNECT CLICKHOUSE
@@ -81,9 +64,29 @@ columns = [
 ]
 
 # ==========================
+# INIT TIME SHIFT
+# ==========================
+print("Calculating time offset...")
+
+first_row = pd.read_csv(
+    CSV_FILE,
+    nrows=1,
+    usecols=["event_time"]
+)
+
+first_time = pd.to_datetime(first_row["event_time"].iloc[0]).tz_localize(None)
+time_offset = datetime.now() - first_time
+
+print(f"First event_time: {first_time}")
+print(f"Time offset: {time_offset}")
+
+# ==========================
 # STREAM + INSERT
 # ==========================
 total_inserted = 0
+
+current_batch = []
+window_start = None
 
 df_iter = pd.read_csv(
     CSV_FILE,
@@ -101,47 +104,75 @@ for chunk_idx, chunk in enumerate(df_iter):
     chunk["product_id"] = chunk["product_id"].fillna(0)
     chunk["user_id"] = chunk["user_id"].fillna(0)
 
-    # đảm bảo datetime
-    chunk["event_time"] = pd.to_datetime(chunk["event_time"])
+    # ===== TIME SHIFT =====
+    chunk["event_time"] = pd.to_datetime(chunk["event_time"]).dt.tz_localize(None)
+    chunk["event_time"] = chunk["event_time"] + time_offset
 
-    # print(pd.to_numeric(chunk["category_id"], errors="coerce").max() > 2**64 - 1)
-    # print(chunk["category_id"].min())
+    # ===== ITERATE ROW =====
+    for row in chunk.itertuples(index=False, name=None):
 
-    # ===== SPLIT INTO BATCH =====
-    for i in range(0, len(chunk), BATCH_SIZE):
+        event_time = row[0]  # event_time là cột đầu
 
-        batch = chunk.iloc[i:i+BATCH_SIZE]
+        if window_start is None:
+            window_start = event_time
 
-        # LIMIT theo MAX_RECORDS
-        if MAX_RECORDS > 0:
-            remaining = MAX_RECORDS - total_inserted
-            if remaining <= 0:
-                break
-            batch = batch.iloc[:remaining]
+        # nếu còn trong window
+        if (event_time - window_start).total_seconds() < WINDOW_SECONDS:
+            current_batch.append(row)
+        else:
+            # ===== INSERT WINDOW =====
+            if current_batch:
+                # limit MAX_RECORDS
+                if MAX_RECORDS > 0:
+                    remaining = MAX_RECORDS - total_inserted
+                    if remaining <= 0:
+                        break
+                    batch_to_insert = current_batch[:remaining]
+                else:
+                    batch_to_insert = current_batch
 
-        # convert → list of tuple (nhanh nhất cho insert)
-        data = list(batch.itertuples(index=False, name=None))
+                client.insert(
+                    TABLE_NAME,
+                    batch_to_insert,
+                    column_names=columns
+                )
 
-        # ===== INSERT =====
-        client.insert(
-            TABLE_NAME,
-            data,
-            column_names=columns
-        )
+                total_inserted += len(batch_to_insert)
 
-        total_inserted += len(data)
+                print(f"[Chunk {chunk_idx}] Inserted: {total_inserted} (batch size: {len(batch_to_insert)})")
 
-        print(f"[Chunk {chunk_idx}] Inserted: {total_inserted}")
+                # simulate streaming delay
+                time.sleep(WINDOW_SECONDS * SLEEP_TIME)
 
-        # ===== STOP CONDITION =====
+            # reset window
+            current_batch = [row]
+            window_start = event_time
+
+        # stop condition
         if MAX_RECORDS > 0 and total_inserted >= MAX_RECORDS:
             print("Reached MAX_RECORDS. STOP")
             break
 
-        # ===== SIMULATE STREAM =====
-        time.sleep(SLEEP_TIME)
-
     if MAX_RECORDS > 0 and total_inserted >= MAX_RECORDS:
         break
+
+# ===== INSERT REMAINING =====
+if current_batch and (MAX_RECORDS == 0 or total_inserted < MAX_RECORDS):
+
+    if MAX_RECORDS > 0:
+        remaining = MAX_RECORDS - total_inserted
+        batch_to_insert = current_batch[:remaining]
+    else:
+        batch_to_insert = current_batch
+
+    client.insert(
+        TABLE_NAME,
+        batch_to_insert,
+        column_names=columns
+    )
+
+    total_inserted += len(batch_to_insert)
+
+    print(f"Final Inserted: {total_inserted} (batch size: {len(batch_to_insert)})")
 
 print("Replay completed")

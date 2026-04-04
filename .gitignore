@@ -23,3 +23,6 @@ keeper_data/*
 
 # ignore dataset
 dataset/raw/*
+
+# ignore keeper data completely
+grafana_data/*
